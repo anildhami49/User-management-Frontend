@@ -4,7 +4,10 @@ on:
   push:
     branches:
       - main
-
+env:
+  AZURE_WEBAPP_NAME: Usermanagementservices-Frontend         # your Azure Web App name
+  NODE_VERSION: '20.x'
+  
 permissions:
   contents: read
 

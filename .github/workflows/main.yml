@@ -1,47 +1,53 @@
-name: Build & Deploy Frontend (Node) -> Usermanagementservices-Frontend
+name: Deploy Frontend to Azure Web App
+
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
 env:
   AZURE_WEBAPP_NAME: Usermanagementservices-Frontend
   NODE_VERSION: '18'
+
 permissions:
   contents: read
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
       
       - name: Install dependencies
         run: npm ci
       
-      - name: Build or fallback to public/
-        run: |
-          if npm run build 2>/dev/null; then
-            echo "Build completed successfully"
-            echo "BUILD_DIR=build" >> $GITHUB_ENV
-          else
-            echo "No build script found or build failed — using public/"
-            echo "BUILD_DIR=public" >> $GITHUB_ENV
-          fi
+      - name: Build application
+        run: npm run build
+        env:
+          REACT_APP_BACKEND_URL: https://student-application-backend-axeuh0g7bmcuema2.centralindia-01.azurewebsites.net
       
-      - name: Prepare artifact (zip)
+      - name: Create deployment package
         run: |
-          cd ${{ env.BUILD_DIR }}
-          zip -r ../frontend.zip .
+          cd build
+          zip -r ../frontend-deploy.zip .
       
-      - name: Deploy to Azure Web App (Frontend)
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
-          app-name: '${{ env.AZURE_WEBAPP_NAME }}'
-          slot-name: 'production'
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}
-          package: './frontend.zip'
+          package: './frontend-deploy.zip'
+      
+      - name: Deployment Summary
+        run: |
+          echo "✅ Frontend deployed successfully!"
+          echo "🌐 URL: https://usermanagementservices-frontend-atbzdze6fubebyb4.centralindia-01.azurewebsites.net"

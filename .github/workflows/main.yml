@@ -45,20 +45,3 @@ jobs:
           slot-name: 'production'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}
           package: './frontend.zip'
-  
-  configure-frontend-settings:
-    needs: build-and-deploy
-    runs-on: ubuntu-latest
-    if: ${{ secrets.AZURE_CREDENTIALS }}
-    steps:
-      - name: Azure login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-      
-      - name: Set Frontend App Settings
-        run: |
-          az webapp config appsettings set \
-            --name Usermanagementservices-Frontend \
-            --resource-group AnilAppresourcegroup \
-            --settings BACKEND_API_URL="https://student-application-Backend.azurewebsites.net/api"

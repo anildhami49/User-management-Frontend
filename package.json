@@ -1,0 +1,19 @@
+{
+  "name": "user-management-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for User Management System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "express",
+    "frontend",
+    "user-management"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

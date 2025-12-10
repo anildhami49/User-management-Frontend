@@ -1,0 +1,55 @@
+<script>
+    const API_URL = 'http://localhost:5000/api';
+
+    // Immediately run dashboard authentication and data loading
+    (async function () {
+        const token = localStorage.getItem('token');
+
+        // If token missing -> not logged in
+        if (!token) {
+            window.location.href = '/login';
+            return;
+        }
+
+        try {
+            // Validate token by calling backend
+            const response = await fetch(`${API_URL}/profile`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                // Token expired or invalid → clear session and redirect
+                localStorage.removeItem('token');
+                localStorage.removeItem('username');
+                window.location.href = '/login';
+                return;
+            }
+
+            // Show welcome message using real backend username
+            if (data.username) {
+                document.getElementById('welcomeUser').textContent =
+                    `Welcome, ${data.username}!`;
+            }
+
+        } catch (error) {
+            console.error('Error validating token:', error);
+
+            // Treat network/other errors as logged-out state
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            window.location.href = '/login';
+        }
+    })();
+
+    // Logout button
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        window.location.href = '/login';
+    });
+</script>

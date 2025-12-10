@@ -1,51 +1,43 @@
 name: Build & Deploy Frontend (Node) -> Usermanagementservices-Frontend
-
 on:
   push:
     branches:
       - main
-
 env:
-  AZURE_WEBAPP_NAME: Usermanagementservices-Frontend   # your Azure Web App name
-  NODE_VERSION: '18'                                   # use Node 18 to match setup-node
-
+  AZURE_WEBAPP_NAME: Usermanagementservices-Frontend
+  NODE_VERSION: '18'
 permissions:
   contents: read
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-
+      
       - name: Install dependencies
         run: npm ci
-        working-directory: .
-
+      
       - name: Build or fallback to public/
         run: |
-          if npm run -s build; then
-            echo "Build completed"
-            BUILD_DIR=build
+          if npm run build 2>/dev/null; then
+            echo "Build completed successfully"
+            echo "BUILD_DIR=build" >> $GITHUB_ENV
           else
             echo "No build script found or build failed — using public/"
-            BUILD_DIR=public
+            echo "BUILD_DIR=public" >> $GITHUB_ENV
           fi
-          echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
-
+      
       - name: Prepare artifact (zip)
-        shell: bash
         run: |
-          set -e
-          cd "$BUILD_DIR"
+          cd ${{ env.BUILD_DIR }}
           zip -r ../frontend.zip .
-        
+      
       - name: Deploy to Azure Web App (Frontend)
         uses: azure/webapps-deploy@v2
         with:
@@ -53,20 +45,20 @@ jobs:
           slot-name: 'production'
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}
           package: './frontend.zip'
-
-  # Optional: set frontend app settings (if using AZURE_CREDENTIALS)
+  
   configure-frontend-settings:
     needs: build-and-deploy
     runs-on: ubuntu-latest
+    if: ${{ secrets.AZURE_CREDENTIALS }}
     steps:
-      - name: Azure login (only runs if AZURE_CREDENTIALS is present)
-        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+      - name: Azure login
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Set Frontend App Settings (only runs if AZURE_CREDENTIALS is present)
-        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+      
+      - name: Set Frontend App Settings
         run: |
-          az webapp config appsettings set --name Usermanagementservices-Frontend --resource-group AnilAppresourcegroup \
+          az webapp config appsettings set \
+            --name Usermanagementservices-Frontend \
+            --resource-group AnilAppresourcegroup \
             --settings BACKEND_API_URL="https://student-application-Backend.azurewebsites.net/api"

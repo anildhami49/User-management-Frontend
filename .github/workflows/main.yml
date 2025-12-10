@@ -1,0 +1,66 @@
+name: Build & Deploy Frontend (Node) -> Usermanagementservices-Frontend
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+        working-directory: .
+
+      - name: Build or fallback to public/
+        run: |
+          if npm run -s build; then
+            echo "Build completed"
+            BUILD_DIR=build
+          else
+            echo "No build script found or build failed — using public/"
+            BUILD_DIR=public
+          fi
+          echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
+
+      - name: Prepare artifact (zip)
+        run: |
+          cd $BUILD_DIR
+          zip -r ../frontend.zip .
+        shell: bash
+
+      - name: Deploy to Azure Web App (Frontend)
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'Usermanagementservices-Frontend'
+          slot-name: 'production'
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}
+          package: './frontend.zip'
+
+  # Optional: set frontend app settings (if using AZURE_CREDENTIALS)
+  configure-frontend-settings:
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+    steps:
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Set Frontend App Settings
+        run: |
+          az webapp config appsettings set --name Usermanagementservices-Frontend --resource-group AnilAppresourcegroup \
+            --settings BACKEND_API_URL="https://student-application-Backend.azurewebsites.net/api"

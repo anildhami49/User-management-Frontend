@@ -7,7 +7,8 @@ const PRODUCTION_API_URL = 'https://student-application-backend-axeuh0g7bmcuema2
 
 // Detect if running on Azure (production) or locally
 const isProduction = window.location.hostname !== 'localhost' && 
-                     window.location.hostname !== '127.0.0.1';
+                     window.location.hostname !== '127.0.0.1' &&
+                     window.location.hostname === 'usermanagementservices-frontend-atbzdze6fubebyb4.canadacentral-01.azurewebsites.net';
 
 // Set the API base URL
 window.API_BASE_URL = isProduction ? PRODUCTION_API_URL : 'http://localhost:5000/api';

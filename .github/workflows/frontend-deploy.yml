@@ -21,20 +21,49 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Show repo root (debug)
+        run: |
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+          echo "Repo root listing:"
+          ls -la
+
+      - name: Find frontend directory (case-insensitive)
+        id: find_frontend
+        run: |
+          set -e
+          FRONTEND_DIR=$(find . -maxdepth 3 -type d -iname 'frontend' -print -quit || true)
+          if [ -z "$FRONTEND_DIR" ]; then
+            echo "No 'frontend' directory found within repo root (searched maxdepth 3)."
+            ls -la
+            exit 1
+          fi
+          FRONTEND_DIR="${FRONTEND_DIR#./}"
+          echo "Found frontend directory: $FRONTEND_DIR"
+          echo "frontend_dir=$FRONTEND_DIR" >> $GITHUB_OUTPUT
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies (frontend)
-        working-directory: ./frontend
-        run: npm ci
+        run: |
+          set -e
+          FRONTEND_DIR="${{ steps.find_frontend.outputs.frontend_dir }}"
+          echo "Using frontend dir: $FRONTEND_DIR"
+          cd "$FRONTEND_DIR"
+          npm ci
+        shell: bash
 
       - name: Create deployment package (frontend)
-        working-directory: ./frontend
         run: |
-          rm -f ../frontend-deploy.zip
-          zip -r ../frontend-deploy.zip . -x "*.git*" -x ".github/*"
+          set -e
+          FRONTEND_DIR="${{ steps.find_frontend.outputs.frontend_dir }}"
+          echo "Zipping frontend directory: $FRONTEND_DIR"
+          rm -f "${{ github.workspace }}/frontend-deploy.zip"
+          (cd "$FRONTEND_DIR" && zip -r "${{ github.workspace }}/frontend-deploy.zip" . -x "*.git*" -x ".github/*")
+          echo "Created frontend-deploy.zip at ${{ github.workspace }}/frontend-deploy.zip"
+        shell: bash
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2

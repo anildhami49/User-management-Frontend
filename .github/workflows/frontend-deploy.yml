@@ -20,35 +20,74 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-      
+
+      # Install dependencies inside frontend/
       - name: Install dependencies
+        working-directory: ./frontend
         run: npm ci
-      
-      # ❌ REMOVE THIS ENTIRE SECTION - NO BUILD NEEDED
-      # - name: Build application
-      #   run: npm run build
-      
-      - name: Create deployment package
+
+      # Ensure web.config exists
+      - name: Ensure web.config exists
+        working-directory: ./frontend
         run: |
-          zip -r frontend-deploy.zip . \
+          if [ ! -f web.config ]; then
+            cat > web.config <<'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <system.webServer>
+    <handlers>
+      <add name="iisnode" path="server.js" verb="*" modules="iisnode" />
+    </handlers>
+
+    <rewrite>
+      <rules>
+        <rule name="NodeRoutes" stopProcessing="true">
+          <match url=".*" />
+          <conditions logicalGrouping="MatchAll">
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="server.js" />
+        </rule>
+      </rules>
+    </rewrite>
+
+    <defaultDocument>
+      <files>
+        <clear />
+        <add value="index.html" />
+      </files>
+    </defaultDocument>
+  </system.webServer>
+</configuration>
+EOF
+          else
+            echo "web.config already exists"
+          fi
+
+      # Create deployment zip from ONLY the frontend folder
+      - name: Create deployment package
+        working-directory: ./frontend
+        run: |
+          rm -f ../frontend-deploy.zip
+          zip -r ../frontend-deploy.zip . \
             -x "*.git*" \
-            -x ".github/*" \
-            -x "README.md" \
-            -x "Notes.txt"
-      
+            -x ".github/*"
+
+      # Deploy to Azure
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_FRONTEND }}
           package: './frontend-deploy.zip'
-      
+
       - name: Deployment Summary
         run: |
-          echo "✅ Frontend deployed successfully!"
-          echo "🌐 URL: https://usermanagementservices-frontend-atbzdze6fubebyb4.centralindia-01.azurewebsites.net"
+          echo "Deployment completed successfully!"
+          echo "URL: https://usermanagementservices-frontend-atbzdze6fubebyb4.centralindia-01.azurewebsites.net"

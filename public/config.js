@@ -2,8 +2,8 @@
 // Change this to your actual backend URL when deployed to production
 // For local development, it will use localhost:5000
 
-// Production Backend URL - UPDATE THIS with your actual Azure backend URL
-const PRODUCTION_API_URL = 'https://your-backend-app.azurewebsites.net/api';
+// Production Backend URL - Azure Backend
+const PRODUCTION_API_URL = 'https://student-application-backend-axeuh0g7bmcuema2.centralindia-01.azurewebsites.net/api';
 
 // Detect if running on Azure (production) or locally
 const isProduction = window.location.hostname !== 'localhost' && 

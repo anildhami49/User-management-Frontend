@@ -30,48 +30,7 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      - name: Ensure web.config exists
-        working-directory: ./frontend
-        run: |
-          if [ ! -f web.config ]; then
-            cat > web.config <<'WCFG'
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <system.webServer>
-    <handlers>
-      <add name="iisnode" path="server.js" verb="*" modules="iisnode" />
-    </handlers>
-
-    <rewrite>
-      <rules>
-        <rule name="NodeRoutes" stopProcessing="true">
-          <match url=".*" />
-          <conditions logicalGrouping="MatchAll">
-            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
-            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
-          </conditions>
-          <action type="Rewrite" url="server.js" />
-        </rule>
-      </rules>
-    </rewrite>
-
-    <defaultDocument>
-      <files>
-        <clear />
-        <add value="index.html" />
-      </files>
-    </defaultDocument>
-
-    <iisnode watchedFiles="web.config;server.js;package.json" />
-  </system.webServer>
-</configuration>
-WCFG
-            echo "Created web.config"
-          else
-            echo "web.config already exists"
-          fi
-
-      - name: Create deployment package
+      - name: Create deployment package (frontend)
         working-directory: ./frontend
         run: |
           rm -f ../frontend-deploy.zip

@@ -3,7 +3,7 @@
 // For local development, it will use localhost:5000
 
 // Production Backend URL - Azure Backend
-const PRODUCTION_API_URL = 'https://student-application-backend-axeuh0g7bmcuema2.centralindia-01.azurewebsites.net/api';
+const PRODUCTION_API_URL = 'https://usermgmt-backend-new-e8d9eveyg2c7d2fz.centralindia-01.azurewebsites.net/api';
 
 // Detect if running on Azure (production) or locally
 const isProduction = window.location.hostname !== 'localhost' && 

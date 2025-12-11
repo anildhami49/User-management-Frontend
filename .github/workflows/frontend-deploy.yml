@@ -27,42 +27,50 @@ jobs:
           echo "Repo root listing:"
           ls -la
 
-      - name: Find frontend directory (case-insensitive)
-        id: find_frontend
+      - name: Resolve app directory
+        id: resolve_dir
         run: |
           set -e
-          FRONTEND_DIR=$(find . -maxdepth 3 -type d -iname 'frontend' -print -quit || true)
-          if [ -z "$FRONTEND_DIR" ]; then
-            echo "No 'frontend' directory found within repo root (searched maxdepth 3)."
-            ls -la
-            exit 1
+          # prefer a folder named frontend (case-insensitive), otherwise use repo root
+          FOUND=$(find . -maxdepth 3 -type d -iname 'frontend' -print -quit || true)
+          if [ -n "$FOUND" ]; then
+            APP_DIR="${FOUND#./}"
+            echo "Using detected frontend directory: $APP_DIR"
+          else
+            # Check if repo root looks like the frontend (package.json + server.js or public/)
+            if [ -f package.json ] && ( [ -f server.js ] || [ -d public ] ); then
+              APP_DIR="."
+              echo "No 'frontend' folder found — using repository root as app directory"
+            else
+              echo "No frontend app found (no ./frontend and repo root lacks package.json/server.js/public)."
+              ls -la
+              exit 1
+            fi
           fi
-          FRONTEND_DIR="${FRONTEND_DIR#./}"
-          echo "Found frontend directory: $FRONTEND_DIR"
-          echo "frontend_dir=$FRONTEND_DIR" >> $GITHUB_OUTPUT
+          echo "app_dir=$APP_DIR" >> $GITHUB_OUTPUT
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install dependencies (frontend)
+      - name: Install dependencies
         run: |
           set -e
-          FRONTEND_DIR="${{ steps.find_frontend.outputs.frontend_dir }}"
-          echo "Using frontend dir: $FRONTEND_DIR"
-          cd "$FRONTEND_DIR"
+          echo "Installing dependencies in: ${{ steps.resolve_dir.outputs.app_dir }}"
+          cd "${{ steps.resolve_dir.outputs.app_dir }}"
           npm ci
         shell: bash
 
-      - name: Create deployment package (frontend)
+      - name: Create deployment package
         run: |
           set -e
-          FRONTEND_DIR="${{ steps.find_frontend.outputs.frontend_dir }}"
-          echo "Zipping frontend directory: $FRONTEND_DIR"
-          rm -f "${{ github.workspace }}/frontend-deploy.zip"
-          (cd "$FRONTEND_DIR" && zip -r "${{ github.workspace }}/frontend-deploy.zip" . -x "*.git*" -x ".github/*")
-          echo "Created frontend-deploy.zip at ${{ github.workspace }}/frontend-deploy.zip"
+          APP_DIR="${{ steps.resolve_dir.outputs.app_dir }}"
+          echo "Creating zip from: $APP_DIR"
+          ZIP_PATH="${{ github.workspace }}/frontend-deploy.zip"
+          rm -f "$ZIP_PATH"
+          (cd "$APP_DIR" && zip -r "$ZIP_PATH" . -x "*.git*" -x ".github/*")
+          echo "Created $ZIP_PATH"
         shell: bash
 
       - name: Deploy to Azure Web App

@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
@@ -31,18 +31,18 @@ jobs:
         id: resolve_dir
         run: |
           set -e
-          # prefer a folder named frontend (case-insensitive), otherwise use repo root
+          # Prefer a folder named frontend (case-insensitive), otherwise use repo root
           FOUND=$(find . -maxdepth 3 -type d -iname 'frontend' -print -quit || true)
           if [ -n "$FOUND" ]; then
             APP_DIR="${FOUND#./}"
             echo "Using detected frontend directory: $APP_DIR"
           else
-            # Check if repo root looks like the frontend (package.json + server.js or public/)
+            # Check if repo root looks like the frontend
             if [ -f package.json ] && ( [ -f server.js ] || [ -d public ] ); then
               APP_DIR="."
               echo "No 'frontend' folder found — using repository root as app directory"
             else
-              echo "No frontend app found (no ./frontend and repo root lacks package.json/server.js/public)."
+              echo "❌ No frontend app found"
               ls -la
               exit 1
             fi
@@ -53,6 +53,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ steps.resolve_dir.outputs.app_dir }}/package-lock.json'
 
       - name: Install dependencies
         run: |
@@ -62,15 +64,37 @@ jobs:
           npm ci
         shell: bash
 
+      # Verify web.config exists for Azure deployment
+      - name: Verify web.config exists
+        run: |
+          set -e
+          APP_DIR="${{ steps.resolve_dir.outputs.app_dir }}"
+          cd "$APP_DIR"
+          if [ -f web.config ]; then
+            echo "✅ web.config found"
+            cat web.config
+          else
+            echo "❌ web.config not found!"
+            exit 1
+          fi
+        shell: bash
+
+      # Create deployment package with all necessary files
       - name: Create deployment package
         run: |
           set -e
           APP_DIR="${{ steps.resolve_dir.outputs.app_dir }}"
-          echo "Creating zip from: $APP_DIR"
+          echo "Creating deployment package from: $APP_DIR"
+          
           ZIP_PATH="${{ github.workspace }}/frontend-deploy.zip"
           rm -f "$ZIP_PATH"
-          (cd "$APP_DIR" && zip -r "$ZIP_PATH" . -x "*.git*" -x ".github/*")
-          echo "Created $ZIP_PATH"
+          
+          # Zip the entire app directory (server.js, public/, web.config, node_modules/, package.json)
+          (cd "$APP_DIR" && zip -r "$ZIP_PATH" . -x "*.git*" "*.github*" "*.env" "README.md")
+          
+          echo "✅ Created $ZIP_PATH"
+          echo "Package contents:"
+          unzip -l "$ZIP_PATH" | head -30
         shell: bash
 
       - name: Deploy to Azure Web App
@@ -82,5 +106,5 @@ jobs:
 
       - name: Deployment Summary
         run: |
-          echo "Deployment completed successfully!"
-          echo "Frontend URL: https://usermanagementservices-frontend-atbzdze6fubebyb4.centralindia-01.azurewebsites.net"
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 Frontend URL: https://usermanagementservices-frontend-atbzdze6fubebyb4.centralindia-01.azurewebsites.net"

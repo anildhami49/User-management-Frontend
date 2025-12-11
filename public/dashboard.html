@@ -1,5 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - User Management System</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="config.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <h3>User Management</h3>
+            <div class="nav-links">
+                <span id="welcomeUser"></span>
+                <a href="/profile" class="btn btn-small">My Profile</a>
+                <button id="logoutBtn" class="btn btn-small btn-danger">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="dashboard-content">
+            <h1>Dashboard</h1>
+            
+            <div class="dashboard-cards">
+                <div class="card">
+                    <h3>👤 Profile</h3>
+                    <p>Manage your personal information and account details</p>
+                    <a href="/profile" class="btn btn-primary">View Profile</a>
+                </div>
+                
+                <div class="card">
+                    <h3>📊 Account Info</h3>
+                    <p id="accountInfo">Loading account information...</p>
+                    <div class="stat">
+                        <strong>Email:</strong> <span id="userEmail">Loading...</span>
+                    </div>
+                    <div class="stat">
+                        <strong>Username:</strong> <span id="userUsername">Loading...</span>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>🔐 Security</h3>
+                    <p>Your account is protected with JWT authentication</p>
+                    <div class="stat">
+                        <strong>Status:</strong> <span style="color: green;">Active</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
-    const API_URL = 'http://localhost:5000/api';
+    // Use environment variable or default to localhost for development
+    const API_URL = window.API_BASE_URL || 'http://localhost:5000/api';
 
     // Immediately run dashboard authentication and data loading
     (async function () {
@@ -34,6 +89,19 @@
             if (data.username) {
                 document.getElementById('welcomeUser').textContent =
                     `Welcome, ${data.username}!`;
+                document.getElementById('userUsername').textContent = data.username;
+            }
+            
+            if (data.email) {
+                document.getElementById('userEmail').textContent = data.email;
+            }
+            
+            // Update account info
+            const accountInfo = document.getElementById('accountInfo');
+            if (data.profile && data.profile.full_name) {
+                accountInfo.textContent = `Hello ${data.profile.full_name}! Your profile is complete.`;
+            } else {
+                accountInfo.textContent = 'Complete your profile to get started.';
             }
 
         } catch (error) {
@@ -53,3 +121,5 @@
         window.location.href = '/login';
     });
 </script>
+</body>
+</html>

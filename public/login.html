@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - User Management System</title>
     <link rel="stylesheet" href="style.css">
+    <script src="config.js"></script>
 </head>
 <body>
     <div class="container">
@@ -34,7 +35,8 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:5000/api';
+        // Use environment variable or default to localhost for development
+        const API_URL = window.API_BASE_URL || 'http://localhost:5000/api';
         
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();

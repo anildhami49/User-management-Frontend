@@ -16,7 +16,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,17 +26,15 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      # Install dependencies inside frontend/
-      - name: Install dependencies
+      - name: Install dependencies (frontend)
         working-directory: ./frontend
         run: npm ci
 
-      # Ensure web.config exists
       - name: Ensure web.config exists
         working-directory: ./frontend
         run: |
           if [ ! -f web.config ]; then
-            cat > web.config <<'EOF'
+            cat > web.config <<'WCFG'
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <system.webServer>
@@ -63,23 +61,22 @@ jobs:
         <add value="index.html" />
       </files>
     </defaultDocument>
+
+    <iisnode watchedFiles="web.config;server.js;package.json" />
   </system.webServer>
 </configuration>
-EOF
+WCFG
+            echo "Created web.config"
           else
             echo "web.config already exists"
           fi
 
-      # Create deployment zip from ONLY the frontend folder
       - name: Create deployment package
         working-directory: ./frontend
         run: |
           rm -f ../frontend-deploy.zip
-          zip -r ../frontend-deploy.zip . \
-            -x "*.git*" \
-            -x ".github/*"
+          zip -r ../frontend-deploy.zip . -x "*.git*" -x ".github/*"
 
-      # Deploy to Azure
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
@@ -90,4 +87,4 @@ EOF
       - name: Deployment Summary
         run: |
           echo "Deployment completed successfully!"
-          echo "URL: https://usermanagementservices-frontend-atbzdze6fubebyb4.centralindia-01.azurewebsites.net"
+          echo "Frontend URL: https://usermanagementservices-frontend-atbzdze6fubebyb4.centralindia-01.azurewebsites.net"

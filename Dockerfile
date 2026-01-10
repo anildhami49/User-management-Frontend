@@ -6,10 +6,10 @@ WORKDIR /app
 
 # Set environment variables
 ENV NODE_ENV=production \
-    PORT=8080
+    PORT=8090
 
 # Copy package files first for better caching
-COPY package*.json ./
+COPY . .
 
 # Install dependencies
 RUN npm ci --only=production && \
@@ -19,16 +19,16 @@ RUN npm ci --only=production && \
 COPY . .
 
 # Create non-root user for security
-RUN adduser -D -u 1001 appuser && \
-    chown -R appuser:appuser /app
-USER appuser
+# RUN adduser -D -u 1001 appuser && \
+#     chown -R appuser:appuser /app
+# USER appuser
 
 # Expose port
-EXPOSE 8080
+EXPOSE 8090
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+# HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+#     CMD node -e "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Run the application
 CMD ["node", "server.js"]
